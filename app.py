@@ -135,8 +135,10 @@ class RAGHandler(BaseHTTPRequestHandler):
 
 
 def main():
-    server = ThreadingHTTPServer(("127.0.0.1", 8000), RAGHandler)
-    print("Serveur démarré sur http://127.0.0.1:8000")
+    host = "0.0.0.0"
+    port = int(__import__("os").getenv("PORT", "8000"))
+    server = ThreadingHTTPServer((host, port), RAGHandler)
+    print(f"Serveur démarré sur http://{host}:{port}")
     server.serve_forever()
 
 
