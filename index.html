@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Assistant RAG OBP</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="panel">
+        <h1>Assistant RAG OBP</h1>
+        <p class="subtitle">Posez une question sur les endpoints OBP et obtenez une réponse issue de la base locale.</p>
+
+        <div id="messages" class="messages" aria-live="polite"></div>
+
+        <div id="typingIndicator" class="typing hidden" aria-live="polite">Le modèle réfléchit…</div>
+
+        <form id="chatForm" class="chat-form">
+          <label class="sr-only" for="messageInput">Question</label>
+          <textarea id="messageInput" data-testid="message-input" rows="3" placeholder="Posez votre question…"></textarea>
+          <button id="sendButton" type="submit" disabled>Envoyer</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
