@@ -1,15 +1,6 @@
 # 🏦 RAG_OBP
 
 **Un assistant Open Banking testé sur deux niveaux : son interface et le comportement de son modèle**
-
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
-[![Mistral](https://img.shields.io/badge/LLM-Mistral--7B-orange.svg)](https://mistral.ai)
-[![Playwright](https://img.shields.io/badge/UI%20tests-Playwright-2EAD33.svg)](https://playwright.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-> Projet collaboratif. Une réponse peut être parfaitement affichée **et** parfaitement fausse —
-> vérifier l'écran et vérifier le contenu sont deux métiers. Ce projet met les deux au même niveau.
-
 ---
 
 ## 🎯 Le problème
@@ -89,12 +80,9 @@ Pour un contexte bancaire européen, trois critères ont guidé le choix :
 - **Licence Apache 2.0** — usage commercial libre, sans restriction d'éditeur
 - **Exécution 100 % locale** — aucune donnée ne quitte la machine
 
-> Précision utile : c'est l'exécution locale qui protège la confidentialité, pas la nationalité
-> de l'éditeur. La différence tient à la licence et à la provenance, pas à la technique.
-
 ## 🧱 Stack
 
-- **LLM** : Mistral-7B Instruct, quantifié (exécution CPU locale)
+- **LLM** : Mistral-7B-Instruct-v0.3 via `transformers`
 - **RAG** : embeddings `all-MiniLM-L6-v2` + FAISS
 - **Interface** : Flask + HTML avec `data-testid`
 - **Tests UI** : Playwright (Python)
@@ -103,31 +91,104 @@ Pour un contexte bancaire européen, trois critères ont guidé le choix :
 
 ## 🚀 Installation
 
-```bash
-git clone https://github.com/titano-loris/RAG_OBP.git
-cd RAG_OBP
-python -m venv venv
-venv\Scripts\activate          # Windows
-pip install -r requirements.txt
+### Prérequis
 
-python fetch_doc_obp.py        # récupère la doc OBP → datasets/
+- Python 3.11+
+- ~15 GB d'espace disque libre (cache du modèle Mistral-7B)
+- ~16 GB de RAM disponibles pendant l'exécution
+- Un compte HuggingFace (Mistral-7B-Instruct-v0.3 est en accès libre, licence Apache 2.0 — aucune validation à demander)
+
+### Mise en place de l'environnement
+
+# 1. Créer l'environnement virtuel du projet (une fois)
+python -m venv venv
+
+# 2. L'activer — (venv) doit apparaître au début de la ligne du terminal
+venv\Scripts\activate            # Windows
+# source venv/bin/activate       # Linux / macOS
+
+# 3. Installer exactement les mêmes dépendances que le reste de l'équipe
+pip install -r requirements.txt
 ```
+
+> ℹ️ Le dossier `venv/` est propre à chaque machine.
+
+> `requirements.txt` : la liste exacte des bibliothèques et de leurs versions. 
+
+> **Si vous ajoutez une dépendance au projet** : `pip install <paquet>` puis
+> `pip freeze > requirements.txt`, et commitez le fichier mis à jour.
+>
+> **À chaque nouvelle session de travail** : réactiver le venv (`venv\Scripts\activate`)
+> avant toute commande
+
+### Construire la base de connaissances
+
+```powershell
+python fetch_doc_obp.py          # récupère la doc OBP → datasets/obp_knowledge.json
+```
+
+### Valider le pipeline (avant toute interface)
+
+```powershell
+python smoke_test.py
+```
+
+Premier lancement : téléchargement du modèle (~14 GB, une seule fois, mis en cache),
+puis chargement en mémoire (3-5 min), puis deux questions de contrôle — une dans le
+périmètre, une hors périmètre qui doit être refusée.
+
+### Lancer l'application
+
+```powershell
+python app\web_app_flask.py      # puis ouvrir l'URL affichée dans la console
+```
+
+### Lancer les tests d'interface (Playwright)
+
+```powershell
+pip install pytest-playwright    # si absent de l'environnement
+playwright install chromium
+
+# Terminal 1 : l'application doit tourner
+python app\web_app_flask.py
+
+# Terminal 2 : les tests
+pytest tests_ui/
+```
+
+L'URL testée n'est pas codée en dur : elle se surcharge via la variable
+d'environnement `APP_BASE_URL` (voir `tests_ui/conftest.py` et le guide
+`GUIDE_PLAYWRIGHT.md`).
 
 ## 📁 Structure
 
+Arborescence réelle du projet — les noms comptent : `tests_ui/` et `tests_ai/` rendent
+les deux couches visibles dès l'explorateur de fichiers.
+
 ```
-RAG_OBP/
-├── fetch_doc_obp.py       # extraction de la doc OBP
-├── datasets/
-│   └── obp_knowledge.json # 129 documents indexables
-├── app/
-│   ├── rag_pipeline.py    # le moteur : FAISS + Mistral-7B
-│   └── web_app_flask.py   # le serveur : sert la page, traite les questions
+obp_project/
+├── app/                       # le cœur applicatif (package Python)
+│   ├── __init__.py            # rend le dossier importable (from app.retriever import ...)
+│   ├── retriever.py           # recherche sémantique : MiniLM + index FAISS
+│   ├── generator.py           # génération : Mistral-7B + prompt système (le contrat)
+│   ├── rag_pipeline.py        # orchestration : retrieval → génération → réponse tracée
+│   └── web_app_flask.py       # serveur : sert la page, expose /api/ask et /api/health
 ├── templates/
-│   └── index.html         # l'interface — porte les attributs data-testid
-├── tests_ui/              # Playwright — couche interface
-└── tests_ai/              # évaluation — couche modèle
+│   └── index.html             # l'interface — porte les attributs data-testid
+├── datasets/
+│   └── obp_knowledge.json     # 129 documents extraits de la doc OBP
+├── tests_ui/                  # ⬅️ couche interface (Playwright)
+│   └── conftest.py            # URL configurable (APP_BASE_URL) + garde-fou serveur
+├── tests_ai/                  # ⬅️ couche modèle (évaluation IA)
+├── fetch_doc_obp.py           # étape 1 : extraction de la doc OBP → datasets/
+├── smoke_test.py              # validation du pipeline nu, sans interface
+├── requirements.txt           # les dépendances exactes, partagées par l'équipe
+└── README.md
 ```
+
+Rôle de chaque brique de `app/` en une ligne : `retriever.py` **cherche** (il ne génère
+rien), `generator.py` **rédige** (il ne cherche rien), `rag_pipeline.py` **coordonne**
+et trace, `web_app_flask.py` **expose** sans rien connaître de l'IA.
 
 ## 🧩 Qui fait quoi — lever une confusion fréquente
 
@@ -179,10 +240,7 @@ servie. **Le serveur doit donc tourner pendant l'exécution des tests d'interfac
 À l'inverse, les tests de `tests_ai/` n'utilisent ni Flask ni navigateur : ils importent
 `rag_pipeline` et l'interrogent directement en Python. Les deux couches sont indépendantes.
 
-
 ## 🔗 Projets liés
 
-Ce projet prolonge deux travaux antérieurs sur le test de systèmes IA :
-
 - **[RAG-TestKit](https://github.com/titano-loris/rag-testkit)** — framework de test déterministe pour systèmes RAG
-- **[DeepEval-Lab](https://github.com/titano-loris/deepeval-lab)** — LLM-as-Judge local
+- **[DeepEval-Lab](https://github.com/titano-loris/deepeval-lab)** — LLM-as-Judge local, [journal d'expérimentation](https://titano-loris.github.io/deepeval-lab/)
