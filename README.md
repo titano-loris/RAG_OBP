@@ -2,6 +2,11 @@
 
 **Un assistant Open Banking testé sur deux niveaux : son interface et le comportement de son modèle**
 
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
+[![Mistral](https://img.shields.io/badge/LLM-Mistral--7B-orange.svg)](https://mistral.ai)
+[![Playwright](https://img.shields.io/badge/UI%20tests-Playwright-2EAD33.svg)](https://playwright.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > Projet collaboratif. Une réponse peut être parfaitement affichée **et** parfaitement fausse —
 > vérifier l'écran et vérifier le contenu sont deux métiers. Ce projet met les deux au même niveau.
 
@@ -115,10 +120,64 @@ RAG_OBP/
 ├── fetch_doc_obp.py       # extraction de la doc OBP
 ├── datasets/
 │   └── obp_knowledge.json # 129 documents indexables
-├── app/                   # assistant RAG + interface
+├── app/
+│   ├── rag_pipeline.py    # le moteur : FAISS + Mistral-7B
+│   └── web_app_flask.py   # le serveur : sert la page, traite les questions
+├── templates/
+│   └── index.html         # l'interface — porte les attributs data-testid
 ├── tests_ui/              # Playwright — couche interface
 └── tests_ai/              # évaluation — couche modèle
 ```
+
+## 🧩 Qui fait quoi — lever une confusion fréquente
+
+Trois éléments sont souvent confondus. Ils ont des rôles distincts :
+
+| Élément | Nature | Rôle |
+|---|---|---|
+| `templates/index.html` | Fichier HTML | L'interface. **Porte** les attributs `data-testid` |
+| `app/web_app_flask.py` | Serveur Python | **Sert** la page et expose l'API `/api/ask` |
+| `tests_ui/` | Suite de tests | **Utilise** les `data-testid` via un vrai navigateur |
+
+### Les `data-testid` ne sont pas des tests
+
+Ce sont de simples attributs HTML, sans effet sur l'apparence ni le comportement.
+Ils servent de **points d'accroche stables** pour que les tests retrouvent les éléments :
+
+```html
+<button data-testid="send-button">Envoyer</button>
+```
+```python
+page.get_by_test_id("send-button").click()
+```
+
+Sans eux, un test ciblerait `div.container > form > button:nth-child(2)` — un sélecteur
+qui casse au moindre changement de style. Il n'existe **qu'une seule suite de tests d'interface**,
+dans `tests_ui/` ; le HTML se contente de poser les étiquettes qu'elle utilise.
+
+### Flask sert une application, pas un document
+
+L'application n'est pas une page statique servie une fois pour toutes : c'est un programme
+qui reçoit une question, interroge l'index FAISS, appelle Mistral et renvoie une réponse
+générée. C'est précisément ce qui la rend testable — et nécessaire à tester.
+
+### Le chemin complet d'un test d'interface
+
+```
+templates/index.html          fichier sur disque
+        ↓  servi par
+app/web_app_flask.py          serveur Flask en cours d'exécution
+        ↓  accessible sur
+http://127.0.0.1:5000         l'application vivante
+        ↓  pilotée par
+tests_ui/                     Playwright ouvre un vrai navigateur sur cette URL
+```
+
+Playwright ne lit jamais le fichier `index.html` : il pilote un navigateur qui charge la page
+servie. **Le serveur doit donc tourner pendant l'exécution des tests d'interface.**
+
+À l'inverse, les tests de `tests_ai/` n'utilisent ni Flask ni navigateur : ils importent
+`rag_pipeline` et l'interrogent directement en Python. Les deux couches sont indépendantes.
 
 
 ## 🔗 Projets liés
@@ -126,4 +185,4 @@ RAG_OBP/
 Ce projet prolonge deux travaux antérieurs sur le test de systèmes IA :
 
 - **[RAG-TestKit](https://github.com/titano-loris/rag-testkit)** — framework de test déterministe pour systèmes RAG
-- **[DeepEval-Lab](https://github.com/titano-loris/deepeval-lab)** — LLM-as-Judge local, [journal d'expérimentation](https://titano-loris.github.io/deepeval-lab/)
+- **[DeepEval-Lab](https://github.com/titano-loris/deepeval-lab)** — LLM-as-Judge local
