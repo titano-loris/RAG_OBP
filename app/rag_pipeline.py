@@ -51,9 +51,6 @@ class RAGPipeline:
         """
         Prépare les deux composants. À appeler une seule fois.
 
-        Ordre volontaire : Ollama est vérifié EN PREMIER (échec en 5 s
-        avec message actionnable) avant l'indexation FAISS (~30 s).
-        Échouer vite sur la dépendance externe évite d'attendre pour rien.
         """
         logger.info("Initialisation du pipeline RAG...")
         self.generator = Generator()

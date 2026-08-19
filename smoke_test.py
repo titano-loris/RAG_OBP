@@ -26,8 +26,8 @@ def main():
     pipeline.initialize()
 
     tests = [
-        ("Question dans le périmètre", "Comment lister les comptes d'une banque ?"),
-        ("Question hors périmètre (doit être refusée)", "Quel est le taux du Livret A ?"),
+        ("In-scope question", "How do I list the accounts of a bank?"),
+        ("Out-of-scope question (must be refused)", "What is the current interest rate of the French Livret A savings account?"),
     ]
 
     for label, question in tests:

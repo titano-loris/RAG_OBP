@@ -73,27 +73,27 @@
 
   <header>
     <h1>Assistant Open Banking</h1>
-    <p class="subtitle">Questions sur l'API Open Bank Project — comptes, transactions, accès</p>
+    <p class="subtitle">Questions about the Open Bank Project API — accounts, transactions, access</p>
   </header>
 
   <div class="history" data-testid="chat-history">
     <div class="empty-state" data-testid="empty-state">
-      Posez une question sur l'API Open Bank Project.
+      Ask a question about the Open Bank Project API.
     </div>
   </div>
 
   <div class="loading" data-testid="loading-indicator">
     <div class="spinner"></div>
-    <span>Génération de la réponse en cours…</span>
+    <span>Generating answer…</span>
   </div>
 
   <div class="composer">
     <input
       type="text"
       data-testid="question-input"
-      placeholder="Comment lister les comptes d'une banque ?"
+      placeholder="How do I list the accounts of a bank?"
       autocomplete="off">
-    <button data-testid="send-button" disabled>Envoyer</button>
+    <button data-testid="send-button" disabled>Send</button>
   </div>
 
 </div>
@@ -166,10 +166,10 @@
       if (response.ok) {
         appendMessage(question, data.answer, data.sources, false);
       } else {
-        appendMessage(question, data.error || 'Une erreur est survenue.', null, true);
+        appendMessage(question, data.error || 'An error occurred.', null, true);
       }
     } catch (err) {
-      appendMessage(question, 'Le service est injoignable. Reessayez dans un instant.', null, true);
+      appendMessage(question, 'Service unavailable. Please try again shortly.', null, true);
     } finally {
       loading.classList.remove('visible');
       input.disabled = false;
