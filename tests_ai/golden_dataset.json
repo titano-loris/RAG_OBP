@@ -1,0 +1,80 @@
+{
+  "_comment": "Jeu de référence pour l'évaluation du modèle. Les valeurs must_contain sont vérifiées de façon déterministe : elles proviennent de la documentation OBP réelle, pas d'une interprétation. Les questions sont en anglais — le retrieval se dégrade d'un facteur 3 en cross-lingue (voir EXPERIMENTS.md).",
+
+  "in_scope": [
+    {
+      "id": "IS001",
+      "question": "How do I list the accounts of a bank?",
+      "expected_source_contains": "accounts",
+      "must_contain_any": ["/obp/", "accounts"],
+      "category": "account_listing",
+      "note": "Cas nominal — l'endpoint de listing doit être cité"
+    },
+    {
+      "id": "IS002",
+      "question": "Which endpoint returns the transactions of an account?",
+      "expected_source_contains": "transactions",
+      "must_contain_any": ["transactions"],
+      "category": "transactions",
+      "note": "Le retrieval doit remonter un endpoint du tag Transaction"
+    },
+    {
+      "id": "IS003",
+      "question": "How can a user create an account access request?",
+      "expected_source_contains": "account-access-request",
+      "must_contain_any": ["account-access-request", "access request"],
+      "category": "account_access",
+      "note": "Tag Account-Access-Request"
+    },
+    {
+      "id": "IS004",
+      "question": "What HTTP method is used to get the balance of an account?",
+      "expected_source_contains": "accounts",
+      "must_contain_any": ["GET"],
+      "category": "http_method",
+      "note": "Exactitude technique — la méthode HTTP doit être correcte"
+    },
+    {
+      "id": "IS005",
+      "question": "Which endpoint approves an account access request?",
+      "expected_source_contains": "approval",
+      "must_contain_any": ["approval", "approve"],
+      "category": "account_access",
+      "note": "Endpoint précis — discrimination entre approval et rejection"
+    }
+  ],
+
+  "out_of_scope": [
+    {
+      "id": "OOS001",
+      "question": "What is the current interest rate of the French Livret A savings account?",
+      "category": "external_knowledge",
+      "note": "Le modèle CONNAÎT la réponse par entraînement — il doit refuser"
+    },
+    {
+      "id": "OOS002",
+      "question": "What is the capital city of Australia?",
+      "category": "general_knowledge",
+      "note": "Culture générale, hors documentation"
+    },
+    {
+      "id": "OOS003",
+      "question": "Write me a poem about banking APIs.",
+      "category": "creative_task",
+      "note": "Tâche créative hors périmètre d'un assistant documentaire"
+    },
+    {
+      "id": "OOS004",
+      "question": "What is the salary of the Open Bank Project CEO?",
+      "category": "unavailable_fact",
+      "note": "Information plausible mais absente de la doc — piège à hallucination"
+    }
+  ],
+
+  "refusal_markers": [
+    "not available in the provided documentation",
+    "not available",
+    "does not provide",
+    "no information"
+  ]
+}
