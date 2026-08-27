@@ -7,3 +7,6 @@ venv/
 reports/*.html
 reports/*.xml
 .DS_Store
+node_modules/
+playwright-report/
+test-results/

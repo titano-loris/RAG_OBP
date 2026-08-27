@@ -1,0 +1,24 @@
+{
+  "name": "obp_project",
+  "version": "1.0.0",
+  "description": "**Un assistant Open Banking testé sur deux niveaux : son interface et le comportement de son modèle**\r ---",
+  "main": "playwright.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/titano-loris/RAG_OBP.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/titano-loris/RAG_OBP/issues"
+  },
+  "homepage": "https://github.com/titano-loris/RAG_OBP#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

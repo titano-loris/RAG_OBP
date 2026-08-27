@@ -1,181 +1,52 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Assistant Open Banking</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: system-ui, -apple-system, sans-serif;
-    background: #f5f6f8;
-    color: #1a1a2e;
-    line-height: 1.6;
-    padding: 24px 16px;
-  }
-  .container { max-width: 760px; margin: 0 auto; }
-  header { margin-bottom: 24px; }
-  h1 { font-size: 20px; font-weight: 600; }
-  .subtitle { font-size: 13px; color: #6b7280; margin-top: 4px; }
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OBP RAG Assistant</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="panel">
+        <h1>OBP RAG Assistant</h1>
+        <p class="subtitle">
+          Ask a question about the Open Bank Project API endpoints.
+          Answers are grounded in the local documentation base.
+        </p>
+        <p class="notice" data-testid="language-notice">
+          Please ask your questions in English — the OBP documentation is in English,
+          and the retrieval quality depends on matching the language of the source.
+        </p>
 
-  .history {
-    background: #fff;
-    border: 1px solid #e2e5ea;
-    border-radius: 10px;
-    padding: 16px;
-    min-height: 240px;
-    margin-bottom: 16px;
-  }
-  .empty-state { color: #9ca3af; font-size: 14px; text-align: center; padding: 60px 20px; }
+        <div id="messages" class="messages" data-testid="chat-history" aria-live="polite"></div>
 
-  .message { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f0f1f3; }
-  .message:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-  .message-question { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
-  .message-answer { font-size: 14px; white-space: pre-wrap; }
-  .message-sources { font-size: 12px; color: #6b7280; margin-top: 8px; }
-  .message-error { font-size: 14px; color: #b91c1c; background: #fef2f2; padding: 10px 12px; border-radius: 6px; }
+        <div id="emptyState" class="empty-state" data-testid="empty-state">
+          No question yet. Ask something about the OBP API.
+        </div>
 
-  .loading { display: none; align-items: center; gap: 10px; font-size: 14px; color: #6b7280; padding: 12px 0; }
-  .loading.visible { display: flex; }
-  .spinner {
-    width: 16px; height: 16px;
-    border: 2px solid #d1d5db; border-top-color: #4b5563;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+        <div
+          id="typingIndicator"
+          class="typing hidden"
+          data-testid="loading-indicator"
+          aria-live="polite">
+          The model is thinking… (this can take a few minutes on CPU)
+        </div>
 
-  .composer { display: flex; gap: 8px; }
-  input[type="text"] {
-    flex: 1;
-    padding: 12px 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: inherit;
-  }
-  input[type="text"]:focus { outline: 2px solid #6366f1; outline-offset: -1px; }
-  button {
-    padding: 12px 22px;
-    border: none;
-    border-radius: 8px;
-    background: #1a1a2e;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  button:disabled { background: #9ca3af; cursor: not-allowed; }
-</style>
-</head>
-<body>
-<div class="container">
+        <form id="chatForm" class="chat-form">
+          <label class="sr-only" for="messageInput">Question</label>
+          <textarea
+            id="messageInput"
+            data-testid="message-input"
+            rows="3"
+            placeholder="How do I list the accounts of a bank?"></textarea>
+          <button id="sendButton" data-testid="send-button" type="submit" disabled>
+            Send
+          </button>
+        </form>
+      </section>
+    </main>
 
-  <header>
-    <h1>Assistant Open Banking</h1>
-    <p class="subtitle">Questions about the Open Bank Project API — accounts, transactions, access</p>
-  </header>
-
-  <div class="history" data-testid="chat-history">
-    <div class="empty-state" data-testid="empty-state">
-      Ask a question about the Open Bank Project API.
-    </div>
-  </div>
-
-  <div class="loading" data-testid="loading-indicator">
-    <div class="spinner"></div>
-    <span>Generating answer…</span>
-  </div>
-
-  <div class="composer">
-    <input
-      type="text"
-      data-testid="question-input"
-      placeholder="How do I list the accounts of a bank?"
-      autocomplete="off">
-    <button data-testid="send-button" disabled>Send</button>
-  </div>
-
-</div>
-
-<script>
-  const input = document.querySelector('[data-testid="question-input"]');
-  const button = document.querySelector('[data-testid="send-button"]');
-  const history = document.querySelector('[data-testid="chat-history"]');
-  const loading = document.querySelector('[data-testid="loading-indicator"]');
-
-  // Le bouton reste inactif tant que le champ est vide : la validation est
-  // visible dans l'interface, donc directement verifiable par les tests UI.
-  input.addEventListener('input', () => {
-    button.disabled = input.value.trim().length === 0;
-  });
-
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && !button.disabled) send();
-  });
-  button.addEventListener('click', send);
-
-  function appendMessage(question, answer, sources, isError) {
-    const emptyState = history.querySelector('[data-testid="empty-state"]');
-    if (emptyState) emptyState.remove();
-
-    const block = document.createElement('div');
-    block.className = 'message';
-    block.setAttribute('data-testid', 'message');
-
-    const q = document.createElement('div');
-    q.className = 'message-question';
-    q.setAttribute('data-testid', 'message-question');
-    q.textContent = question;
-    block.appendChild(q);
-
-    const a = document.createElement('div');
-    a.className = isError ? 'message-error' : 'message-answer';
-    a.setAttribute('data-testid', isError ? 'message-error' : 'message-answer');
-    a.textContent = answer;
-    block.appendChild(a);
-
-    if (sources && sources.length > 0) {
-      const s = document.createElement('div');
-      s.className = 'message-sources';
-      s.setAttribute('data-testid', 'message-sources');
-      s.textContent = 'Sources : ' + sources.join(', ');
-      block.appendChild(s);
-    }
-
-    history.appendChild(block);
-  }
-
-  async function send() {
-    const question = input.value.trim();
-    if (!question) return;
-
-    input.value = '';
-    button.disabled = true;
-    input.disabled = true;
-    loading.classList.add('visible');
-
-    try {
-      const response = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        appendMessage(question, data.answer, data.sources, false);
-      } else {
-        appendMessage(question, data.error || 'An error occurred.', null, true);
-      }
-    } catch (err) {
-      appendMessage(question, 'Service unavailable. Please try again shortly.', null, true);
-    } finally {
-      loading.classList.remove('visible');
-      input.disabled = false;
-      input.focus();
-    }
-  }
-</script>
-</body>
+    <script src="/app.js"></script>
+  </body>
 </html>
